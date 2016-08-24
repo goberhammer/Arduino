@@ -113,8 +113,8 @@ extern const stm32_pin_info PIN_MAP[GPIO_PINS] = {
     {GPIOG,  9, NULL,    0,    NULL, ADCx}, // PG9:  D15         -       -                                 -               - USART6_RX (Serial3)   -
     {GPIOD,  5, NULL,    0,    NULL, ADCx}, // PD5:  D16         -       -                                 -               - USART2_TX (Serial2)   -
     {GPIOD,  6, NULL,    0,    NULL, ADCx}, // PD6:  D17         -       -                                 -               - USART2_RX (Serial2)   -
-    {GPIOB, 11, TIMER2,  4,    NULL, ADCx}, // PB11: D18         -       - TIM2_CH4                        -               - USART3_RX (Serial3)   - TX and RX pins are inverted in HW
-    {GPIOB, 10, TIMER2,  3,    NULL, ADCx}, // PB10: D19         -       - TIM2_CH3                        -               - USART3_RX (Serial3)   - TX and RX pins are inverted in HW
+    {GPIOB, 10, TIMER2,  3,    NULL, ADCx}, // PB10: D18         -       - TIM2_CH3                        -               - USART3_RX (Serial3)   -
+    {GPIOB, 11, TIMER2,  4,    NULL, ADCx}, // PB11: D19         -       - TIM2_CH4                        -               - USART3_RX (Serial3)   -
     {GPIOH,  5, NULL,    0,    NULL, ADCx}, // PH5:  D20         -       -                                 -               - I2C2_SDA      -
     {GPIOH,  4, NULL,    0,    NULL, ADCx}, // PH4:  D21         -       -                                 -               - I2C2_SCL      -
 // D22...D53
@@ -167,8 +167,8 @@ extern const stm32_pin_info PIN_MAP[GPIO_PINS] = {
     {GPIOA,  4, NULL,    0,    ADC2,    4}, // PA4:  D66 / A12   - INT   -                               - ADC12_IN4     - DAC_OUT1
     {GPIOA,  5, NULL,    0,    ADC2,    5}, // PA5:  D67 / A13   - INT   - TIM2_CH1/TIM8_CH1N            - ADC12_IN5     - DAC_OUT2
 // CANRX - CANTX (D68 - D69)
-    {GPIOB,  8, TIMER4,  3,    NULL, ADCx}, // PB8:  D68         - INT   - TIM4_CH3/TIM10_CH1            -               -
-    {GPIOB,  9, TIMER4,  4,    NULL, ADCx}, // PB9:  D69         - INT   - TIM4_CH4/TIM11_CH1            -               -
+    {GPIOB,  9, TIMER4,  4,    NULL, ADCx}, // PB9:  D68         - INT   - TIM4_CH4/TIM11_CH1            -               -
+    {GPIOB,  8, TIMER4,  3,    NULL, ADCx}, // PB8:  D69         - INT   - TIM4_CH3/TIM10_CH1            -               -
 // SPI - (D70 - D72)
     {GPIOB, 14, NULL,    0,    NULL, ADCx}, // PB14: D70 / MISO  -       - TIM1_CH2N/TIM8_CH2N           -               -
     {GPIOD, 10, NULL,    0,    NULL, ADCx}, // PB10: D71 / SCK   -       - TIM2_CH3                      -               -
