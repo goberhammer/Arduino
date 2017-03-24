@@ -32,7 +32,7 @@ void loop()
     delay(3000);
 
     // Blocking demo
-    agfx.background(AGFX_WHITE);
-    agfx.demoTouch();
+    //agfx.background(AGFX_WHITE);
+    //agfx.demoTouch();
 }
 

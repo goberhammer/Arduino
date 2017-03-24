@@ -64,7 +64,7 @@ bool AGFX::begin()
         }
 #else
         // Calibrate always
-        AGFX_TS_Calibrate(width, height);
+        //AGFX_TS_Calibrate(width, height);
 #endif
     }
 

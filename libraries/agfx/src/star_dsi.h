@@ -30,8 +30,6 @@ extern uint8_t STAR_DSI_Init(LCD_OrientationTypeDef orientation);
 extern uint16_t STAR_DSI_PanelWidth(void);
 extern uint16_t STAR_DSI_PanelHeight(void);
 extern void STAR_DSI_DrawPoint(uint16_t x, uint16_t y, uint32_t color);
-extern void STAR_DSI_FillBufferDma(uint32_t layerIdx, void *dst,
-        uint32_t width, uint32_t height, uint32_t lineOffset, uint32_t color);
 extern void STAR_DSI_FillRectDma(uint16_t x, uint16_t y, uint16_t width,
         uint16_t height, uint32_t color);
 extern void STAR_DSI_DisplayOn(void);
