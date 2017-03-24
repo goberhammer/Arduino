@@ -22,6 +22,10 @@
 #define LCD_OTM8009A_ID                 ((uint32_t)0)
 #define FB_ADDR(_x, _y) \
     (hltdc.LayerCfg[currLayer].FBStartAdress + 4*(panelWidth*(_y)+(_x)))
+#define MIN(_a, _b)          ( (_a) > (_b) ? (_b) : (_a) )
+#define DMA2D_MAX_SIZE   128U
+#define DMA2D_MAX_AREA   (DMA2D_MAX_SIZE*DMA2D_MAX_SIZE)
+#define IS_VBLANK()      (HAL_LTDC->CDSR & LTDC_CDSR_VSYNCS)
 
 // #ifdef BOARD_DISCO469
 //     #define RES_GPIO_CLK_ENABLE()       __HAL_RCC_GPIOH_CLK_ENABLE()
@@ -309,9 +313,12 @@ void STAR_DSI_DrawPoint(uint16_t x, uint16_t y, uint32_t color)
     *(__IO uint32_t*)FB_ADDR(x, y) = color;
 }
 
-void STAR_DSI_FillBufferDma(uint32_t layerIdx, void *dst, uint32_t width,
+static void STAR_DSI_FillBufferDma(uint32_t layerIdx, void *dst, uint32_t width,
         uint32_t height, uint32_t lineOffset, uint32_t color)
 {
+    // Wait for VBLANK start
+    while (!IS_VBLANK()) ;
+
     hdma2d.Init.Mode = DMA2D_R2M;
     hdma2d.Init.ColorMode = DMA2D_ARGB8888;
     hdma2d.Init.OutputOffset = lineOffset;
@@ -327,8 +334,32 @@ void STAR_DSI_FillBufferDma(uint32_t layerIdx, void *dst, uint32_t width,
 void STAR_DSI_FillRectDma(uint16_t x, uint16_t y, uint16_t width,
         uint16_t height, uint32_t color)
 {
-    STAR_DSI_FillBufferDma(currLayer, FB_ADDR(x, y), width, height,
-            panelWidth - width, color);
+    uint16_t tx = x, ty = y;
+    uint16_t tw, th;
+    uint16_t rw = width, rh = height;   // Width/height to go
+
+    // If blitting area takes more than one VSYNC period,
+    // we split it in several calls
+    if (width*height > DMA2D_MAX_AREA) {
+        while (rh) {
+            th = MIN(DMA2D_MAX_SIZE, rh);
+            while (rw) {
+                tw = MIN(DMA2D_MAX_SIZE, rw);
+                STAR_DSI_FillBufferDma(currLayer, FB_ADDR(tx, ty), tw, th,
+                        panelWidth - tw, color);
+                tx += DMA2D_MAX_SIZE;
+                rw -= tw;
+            }
+            ty += DMA2D_MAX_SIZE;
+            rh -= th;
+            tx = x;
+            rw = width;
+        }
+    }
+    else {
+        STAR_DSI_FillBufferDma(currLayer, FB_ADDR(x, y), width, height,
+                panelWidth - width, color);
+    }
 }
 
 void STAR_DSI_DisplayOn(void)
