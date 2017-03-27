@@ -1,8 +1,8 @@
 #include "star_dsi.h"
 #include "stm32f469xx.h"
 
+#define ENABLE_LTDC_IRQ
 // Not used yet
-//#define ENABLE_LTDC_IRQ
 //#define ENABLE_DMA2D_IRQ
 //#define ENABLE_DSI_IRQ
 
@@ -15,13 +15,17 @@
 //#define DMA2D_ARGB4444                       ((uint32_t)0x00000004)             /*!< ARGB4444 DMA2D color mode */
 
 // Valid only for 800x480 32bpp
+#define SCR_SIZE                        ((uint32_t)0x00180000) // slightly larger than 800*480*4
+#define MAX_SCR_COUNT                   2
 #define BG_LAYER_ADDR                   ((uint32_t)0xC0000000)
 #define BG_LAYER_IDX                    ((uint32_t)0)
 //#define FG_LAYER_IDX                    ((uint32_t)1)
 //#define NUM_LAYERS                      ((uint32_t)2)
 #define LCD_OTM8009A_ID                 ((uint32_t)0)
-#define FB_ADDR(_x, _y) \
-    (hltdc.LayerCfg[currLayer].FBStartAdress + 4*(panelWidth*(_y)+(_x)))
+#define FB_ADDR(_currScrIdx,_x, _y) \
+    (hltdc.LayerCfg[currLayer].FBStartAdress \
+     + _currScrIdx*SCR_SIZE \
+     + 4*(panelWidth*(_y)+(_x)))
 #define MIN(_a, _b)          ( (_a) > (_b) ? (_b) : (_a) )
 #define DMA2D_MAX_SIZE   128U
 #define DMA2D_MAX_AREA   (DMA2D_MAX_SIZE*DMA2D_MAX_SIZE)
@@ -38,6 +42,8 @@
 //#endif
 
 static uint32_t currLayer = BG_LAYER_IDX;
+static uint32_t currScrIdx = 0;
+static volatile uint8_t swapScrBuf = 0;
 static DSI_VidCfgTypeDef hdsivid;
 static DMA2D_HandleTypeDef hdma2d;
 static LTDC_HandleTypeDef hltdc;
@@ -110,6 +116,16 @@ void __irq_LTDC_ER_IRQHandler(void)
 
 void HAL_LTDC_LineEventCallback(LTDC_HandleTypeDef *hltdc)
 {
+    static uint32_t cnt = 0;
+
+    if (swapScrBuf) {
+        uint32_t addr = hltdc->LayerCfg[currLayer].FBStartAdress;
+        addr += currScrIdx * SCR_SIZE;
+        LTDC_LAYER(hltdc, currLayer)->CFBAR = addr;
+        __HAL_LTDC_RELOAD_CONFIG(hltdc);
+        swapScrBuf = 0;
+    }
+
     HAL_LTDC_ProgramLineEvent(hltdc, 0);
 }
 
@@ -308,9 +324,38 @@ uint16_t STAR_DSI_PanelHeight(void)
     return panelHeight;
 }
 
+void STAR_DSI_SetDrawScreen(uint8_t scrIdx)
+{
+    if (scrIdx < MAX_SCR_COUNT)
+        currScrIdx = scrIdx;
+}
+
+uint8_t STAR_DSI_GetDrawScreen(void)
+{
+    return currScrIdx;
+}
+
+void STAR_DSI_ShowScreen(uint8_t scrIdx)
+{
+    // Flip screen at next VSYNC
+    swapScrBuf = 1;
+    while (swapScrBuf) ;
+}
+
+void STAR_DSI_CopyScreen(uint8_t fromIdx, uint8_t toIdx)
+{
+    uint32_t offset = 0;
+
+    while (offset < SCR_SIZE) {
+        while (!IS_VBLANK()) ;
+        memcpy(FB_ADDR(toIdx, 0, 0)+offset, FB_ADDR(fromIdx, 0, 0)+offset, DMA2D_MAX_AREA);
+        offset += DMA2D_MAX_AREA;
+    }
+}
+
 void STAR_DSI_DrawPoint(uint16_t x, uint16_t y, uint32_t color)
 {
-    *(__IO uint32_t*)FB_ADDR(x, y) = color;
+    *(__IO uint32_t*)FB_ADDR(currScrIdx, x, y) = color;
 }
 
 static void STAR_DSI_FillBufferDma(uint32_t layerIdx, void *dst, uint32_t width,
@@ -345,7 +390,7 @@ void STAR_DSI_FillRectDma(uint16_t x, uint16_t y, uint16_t width,
             th = MIN(DMA2D_MAX_SIZE, rh);
             while (rw) {
                 tw = MIN(DMA2D_MAX_SIZE, rw);
-                STAR_DSI_FillBufferDma(currLayer, FB_ADDR(tx, ty), tw, th,
+                STAR_DSI_FillBufferDma(currLayer, FB_ADDR(currScrIdx, tx, ty), tw, th,
                         panelWidth - tw, color);
                 tx += DMA2D_MAX_SIZE;
                 rw -= tw;
@@ -357,7 +402,7 @@ void STAR_DSI_FillRectDma(uint16_t x, uint16_t y, uint16_t width,
         }
     }
     else {
-        STAR_DSI_FillBufferDma(currLayer, FB_ADDR(x, y), width, height,
+        STAR_DSI_FillBufferDma(currLayer, FB_ADDR(currScrIdx, x, y), width, height,
                 panelWidth - width, color);
     }
 }
